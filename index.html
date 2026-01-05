@@ -9,158 +9,77 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     
     <style>
-        /* --- Huisstijl Definities --- */
         :root {
             --slate-50: #f8fafc;
             --slate-200: #e2e8f0;
-            --slate-400: #94a3b8;
             --slate-500: #64748b;
-            --slate-700: #334155;
             --slate-800: #1e293b; 
             --white: #ffffff;
-            --accent: #10b981; /* Emerald */
+            --accent: #10b981;
             --green-50: #f0fdf4;
             --green-700: #15803d;
             --radius-lg: 16px;
             --radius-md: 12px;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--slate-50);
-            color: var(--slate-700);
             margin: 0;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
         }
 
-        /* --- Header & Navigatie --- */
-        .header { 
-            background: var(--white); 
-            border-bottom: 1px solid var(--slate-200); 
-            padding: 1.5rem; 
-            position: relative; 
-        }
-        
-        .header-content { 
-            max-width: 900px; 
-            margin: 0 auto; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 16px; 
-        }
+        .header { background: var(--white); border-bottom: 1px solid var(--slate-200); padding: 1.5rem; position: relative; }
+        .header-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 16px; }
 
-        /* De Terug-link */
         .back-link {
-            position: absolute;
-            left: 1.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 8px; 
-            text-decoration: none;
-            color: var(--slate-500); 
-            font-weight: 500; 
-            font-size: 1rem;
-            transition: color 0.2s ease;
-            z-index: 10;
+            position: absolute; left: 1.5rem; top: 50%; transform: translateY(-50%);
+            display: flex; align-items: center; gap: 8px; text-decoration: none;
+            color: var(--slate-500); font-weight: 500; transition: color 0.2s;
         }
         .back-link:hover { color: var(--accent); }
-        .back-link svg { width: 20px; height: 20px; stroke-width: 2; }
 
-        @media (max-width: 600px) {
-            .back-link span { display: none; } 
-            .header { padding: 1rem; }
-            .back-link { left: 1rem; }
-        }
-        
         .logo-circle {
             width: 56px; height: 56px; background: var(--green-50); border: 2px solid var(--accent);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        
-        .logo-circle svg { width: 38px; height: 38px; }
-
-        h1 { font-size: 1.5rem; font-weight: 800; color: var(--slate-800); margin: 0; line-height: 1; }
-        .subtitle { font-size: 0.875rem; color: var(--slate-500); margin-top: 4px; font-weight: 500; }
-
-        /* --- Layout Container --- */
-        .container {
-            max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; flex: 1; width: 100%;
-            box-sizing: border-box; display: flex; flex-direction: column; align-items: center;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
         }
 
-        .card {
-            background: var(--white); border-radius: var(--radius-lg); border: 1.5px solid var(--slate-200);
-            padding: 1.5rem; display: flex; flex-direction: column; position: relative; width: 100%; box-shadow: var(--shadow-sm);
-        }
+        .container { max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; flex: 1; width: 100%; box-sizing: border-box; }
+        .card { background: var(--white); border-radius: var(--radius-lg); border: 1.5px solid var(--slate-200); padding: 1.5rem; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* --- Loader --- */
-        #loader {
-            position: absolute; inset: 0; background: var(--white); z-index: 20;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--radius-lg);
-        }
-        .spinner {
-            width: 44px; height: 44px; border: 3.5px solid var(--green-50); border-top: 3.5px solid var(--accent);
-            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* --- Canvas & Video --- */
-        .canvas-container {
-            position: relative; border-radius: var(--radius-md); overflow: hidden;
-            background: #000; line-height: 0; aspect-ratio: 4/3; width: 100%;
-        }
-        video { display: none; } 
+        .canvas-container { position: relative; border-radius: var(--radius-md); overflow: hidden; background: #000; aspect-ratio: 4/3; }
+        video { display: none; }
         canvas { width: 100%; height: 100%; display: block; }
 
-        /* --- Instructie & Feedback Box --- */
         .instruction-box {
             margin-top: 1.5rem; padding: 1.25rem; background: var(--green-50); border: 1.5px solid var(--accent);
-            border-radius: var(--radius-md); text-align: center; font-weight: 700; color: var(--slate-800);
-            font-size: 1rem; transition: all 0.4s ease-in-out;
+            border-radius: var(--radius-md); text-align: center; font-weight: 700; transition: 0.3s;
         }
 
-        /* --- Controls --- */
-        .controls { display: flex; gap: 1rem; margin-top: 1.5rem; width: 100%; }
-        
+        .controls { display: flex; gap: 1rem; margin-top: 1.5rem; }
         .btn {
             flex: 1; padding: 0.875rem; background: var(--white); border: 1.5px solid var(--slate-200);
-            border-radius: var(--radius-md); font-weight: 700; color: var(--slate-700); cursor: pointer;
-            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
-            font-size: 0.875rem;
+            border-radius: var(--radius-md); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .btn:hover { border-color: var(--accent); background: var(--green-50); color: var(--accent); }
 
-        /* --- Details / Uitleg --- */
-        details { border-top: 1px solid var(--slate-200); margin-top: 1.5rem; width: 100%; }
-        summary { padding: 1rem 0; font-size: 0.8125rem; font-weight: 700; color: var(--slate-500); cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
-        .info-text { font-size: 0.75rem; color: var(--slate-500); line-height: 1.6; margin: 0; padding-bottom: 0.5rem; }
+        #loader { position: absolute; inset: 0; background: var(--white); z-index: 20; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-lg); }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--green-50); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* --- Footer Quote --- */
         .footer { text-align: center; padding: 3rem 1rem; margin-top: auto; }
-        .footer-quote { 
-            color: var(--green-700); font-size: 1rem; font-weight: 600;
-            letter-spacing: 0.02em; display: inline-block;
-        }
+        .footer-quote { color: var(--green-700); font-size: 1rem; font-weight: 600; }
     </style>
 </head>
 <body>
 
     <header class="header">
         <a href="https://onderconstructie.github.io/fun" class="back-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             <span>Fun</span>
         </a>
-
         <div class="header-content">
             <div class="logo-circle">
                 <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -170,281 +89,147 @@
                     <circle cx="16" cy="14" r="1" fill="#1e293b"/>
                 </svg>
             </div>
-            <div class="title-group">
-                <h1>Napoleon Lookalike</h1>
-                <p class="subtitle">Ontdek je innerlijke keizer</p>
-            </div>
+            <h1 style="margin:0; font-size: 1.5rem;">Napoleon Lookalike</h1>
         </div>
     </header>
 
     <div class="container">
         <div class="card">
-            <div id="loader">
-                <div class="spinner"></div>
-                <p id="loaderStatus" style="font-size: 0.875rem; font-weight: 600; color: var(--slate-500); text-align: center;">
-                    AI Initialiseren...<br>Een moment geduld.
-                </p>
-            </div>
-            
+            <div id="loader"><div class="spinner"></div></div>
             <div class="canvas-container">
-                <video id="webcam" playsinline width="640" height="480"></video>
+                <video id="webcam" playsinline></video>
                 <canvas id="output_canvas"></canvas>
             </div>
-
-            <div class="instruction-box" id="instructionText">
-                Plaats je rechterhand op je hart.
-            </div>
-
+            <div class="instruction-box" id="instructionText">Plaats je rechterhand op je hart.</div>
             <div class="controls">
                 <button class="btn" onclick="toggleCamera()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 1.965.71 3.766 1.89 5.168"/>
-                        <path d="M4 10h4v-4"/>
-                        <path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8c0-1.965-.71-3.766-1.89-5.168"/>
-                        <path d="M20 14h-4v4"/>
-                    </svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8c0 2 .7 3.8 1.9 5.2M4 10h4v-4M4 14c0 4.4 3.6 8 8 8s8-3.6 8-8c0-2-.7-3.8-1.9-5.2M20 14h-4v4"/></svg>
                     Wissel
                 </button>
-                <button class="btn" onclick="resetState()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <button class="btn" onclick="resetApp()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>
                     Herstart
                 </button>
             </div>
-
-            <details>
-                <summary>Hoe werkt dit? <span>▼</span></summary>
-                <div class="info-text">
-                    <p><strong>Technologie:</strong> Deze tool gebruikt MediaPipe Holistic om je houding te analyseren.</p>
-                    <p style="margin-top: 8px;"><strong>Camera:</strong> Gebruik de wisselknop om de camera aan de achterkant te gebruiken (ideaal voor mobiel).</p>
-                    <p style="margin-top: 8px;"><strong>Privacy:</strong> Alle data blijft lokaal.</p>
-                </div>
-            </details>
         </div>
     </div>
 
-    <footer class="footer">
-        <span class="footer-quote">Wie zijn eigen grenzen kent, regeert.</span>
-    </footer>
+    <footer class="footer"><span class="footer-quote">Wie zijn eigen grenzen kent, regeert.</span></footer>
 
     <script>
-        const videoElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('output_canvas');
-        const ctx = canvasElement.getContext('2d');
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('output_canvas');
+        const ctx = canvas.getContext('2d');
         const loader = document.getElementById('loader');
-        const instructionText = document.getElementById('instructionText');
+        const instruction = document.getElementById('instructionText');
 
-        let holisticModel;
-        let isProcessing = false;
-        let lastResults = null;
-        
-        let hatActive = false;
-        let hatTimer = 0;
+        let holistic, stream, isProcessing = false, lastResults = null;
+        let hatActive = false, hatTimer = 0, currentFacingMode = 'user';
 
-        let currentFacingMode = 'user';
-        let stream = null;
-
-        function renderLoop() {
-            ctx.save();
-            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-            if (currentFacingMode === 'user') {
-                ctx.translate(canvasElement.width, 0);
-                ctx.scale(-1, 1);
-            }
-
-            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-            if (lastResults && lastResults.faceLandmarks) {
-                if (hatActive || hatTimer > 0) {
-                    drawPrettyHat(lastResults.faceLandmarks);
-                    if (!hatActive) hatTimer--;
-                }
-            }
-            ctx.restore();
-
-            if (!isProcessing && videoElement.readyState >= 2) {
-                triggerAI();
-            }
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        async function triggerAI() {
-            isProcessing = true;
-            try {
-                await holisticModel.send({image: videoElement});
-            } catch (e) {
-                console.error(e);
-                isProcessing = false;
-            }
-        }
-
-        function onResults(results) {
-            if (loader.style.display !== 'none') loader.style.display = 'none';
-            lastResults = results;
-            isProcessing = false;
-
-            hatActive = false; 
-
-            if (results.poseLandmarks) {
-                if (results.rightHandLandmarks) {
-                    checkGesturePrecise(results.poseLandmarks, results.rightHandLandmarks);
-                } else if (results.leftHandLandmarks) {
-                    checkGesturePrecise(results.poseLandmarks, results.leftHandLandmarks);
-                }
-            }
-
-            if (hatActive) {
-                hatTimer = 45; 
-                instructionText.style.background = "#1e293b";
-                instructionText.style.color = "#ffffff";
-                instructionText.style.borderColor = "#1e293b";
-                instructionText.innerText = "Vive l'Empereur!";
-            } else if (hatTimer <= 0) {
-                instructionText.style.background = "#f0fdf4";
-                instructionText.style.color = "#1e293b";
-                instructionText.style.borderColor = "#10b981";
-                instructionText.innerText = "Plaats je rechterhand op je hart.";
-            }
-        }
-
-        // --- AANGEPASTE LOGICA: VLOTTERE DETECTIE ---
-        function checkGesturePrecise(pose, hand) {
-            const leftShoulder = pose[11];  
-            const rightShoulder = pose[12]; 
-            const wrist = hand[0];          
-
-            const shoulderWidth = Math.sqrt(
-                Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
-                Math.pow(rightShoulder.y - leftShoulder.y, 2)
-            );
-
-            // Doelzone: Iets meer naar het midden (0.25 ipv 0.20) en iets lager (0.35 ipv 0.30)
-            const heartX = leftShoulder.x + (rightShoulder.x - leftShoulder.x) * 0.25;
-            const heartY = leftShoulder.y + (shoulderWidth * 0.35);
-
-            const distToHeart = Math.sqrt(
-                Math.pow(heartX - wrist.x, 2) + 
-                Math.pow(heartY - wrist.y, 2)
-            );
-
-            // Tolerantie verhoogd naar 50% van de schouderbreedte (was 30%)
-            // Dit maakt het veel makkelijker om te triggeren op mobiel
-            if (distToHeart < (shoulderWidth * 0.50)) { 
-                hatActive = true;
-            }
-        }
-
-        function drawPrettyHat(faceLandmarks) {
-            const leftTemple = faceLandmarks[139];
-            const rightTemple = faceLandmarks[368];
-            const topHead = faceLandmarks[10];
-
-            const headWidth = Math.sqrt(
-                Math.pow(rightTemple.x - leftTemple.x, 2) +
-                Math.pow(rightTemple.y - leftTemple.y, 2)
-            ) * canvasElement.width;
-            
-            const hatScale = headWidth * 3.2; 
-            const hatHeight = hatScale * 0.45;
-
-            const centerX = topHead.x * canvasElement.width;
-            const centerY = (topHead.y * canvasElement.height) - (hatHeight * 0.50);
-            
-            const angle = Math.atan2(
-                rightTemple.y - leftTemple.y,
-                rightTemple.x - leftTemple.x
-            );
-
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.rotate(angle);
-
-            ctx.beginPath();
-            ctx.moveTo(-hatScale/2, hatHeight/2);
-            ctx.bezierCurveTo(-hatScale*0.2, -hatHeight*1.2, hatScale*0.2, -hatHeight*1.2, hatScale/2, hatHeight/2);
-            ctx.quadraticCurveTo(0, hatHeight*0.1, -hatScale/2, hatHeight/2);
-            ctx.closePath();
-
-            const gradient = ctx.createRadialGradient(0, -hatHeight*0.2, hatScale*0.1, 0, 0, hatScale*0.6);
-            gradient.addColorStop(0, '#475569'); 
-            gradient.addColorStop(1, '#0f172a'); 
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-            ctx.lineWidth = 6;
-            ctx.strokeStyle = '#10b981';
-            ctx.stroke();
-
-            const cockadeSize = hatScale * 0.11;
-            ctx.translate(-hatScale * 0.22, -hatHeight * 0.15); 
-            ctx.beginPath(); ctx.fillStyle = '#10b981'; ctx.arc(0, 0, cockadeSize, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.fillStyle = '#ffffff'; ctx.arc(0, 0, cockadeSize * 0.65, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.fillStyle = '#0f172a'; ctx.arc(0, 0, cockadeSize * 0.35, 0, Math.PI * 2); ctx.fill();
-
-            ctx.restore();
+        function resetApp() {
+            hatActive = false; hatTimer = 0; lastResults = null;
+            instruction.innerText = "Plaats je rechterhand op je hart.";
+            instruction.style.background = "var(--green-50)";
+            instruction.style.color = "var(--slate-800)";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         async function setupCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-
+            if (stream) stream.getTracks().forEach(t => t.stop());
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        width: 640, 
-                        height: 480, 
-                        facingMode: currentFacingMode 
-                    }
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: currentFacingMode, width: 640, height: 480 } 
                 });
-                videoElement.srcObject = stream;
-                
-                await new Promise(r => videoElement.onloadedmetadata = r);
-                canvasElement.width = videoElement.videoWidth;
-                canvasElement.height = videoElement.videoHeight;
-            } catch (err) {
-                alert("Kon camera niet starten.");
-                console.error(err);
-            }
+                video.srcObject = stream;
+                return new Promise(r => video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    r();
+                });
+            } catch (e) { alert("Camera niet beschikbaar."); }
         }
 
         async function toggleCamera() {
-            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
             loader.style.display = 'flex';
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
             await setupCamera();
             loader.style.display = 'none';
         }
 
-        function resetState() {
+        function onResults(results) {
+            loader.style.display = 'none';
+            lastResults = results;
             hatActive = false;
-            hatTimer = 0;
-            instructionText.style.background = "#f0fdf4";
-            instructionText.style.color = "#1e293b";
-            instructionText.style.borderColor = "#10b981";
-            instructionText.innerText = "Plaats je rechterhand op je hart.";
+            if (results.poseLandmarks) {
+                const hand = results.rightHandLandmarks || results.leftHandLandmarks;
+                if (hand) {
+                    const shoulder = results.poseLandmarks[11];
+                    const dist = Math.sqrt(Math.pow(shoulder.x - hand[0].x, 2) + Math.pow(shoulder.y - hand[0].y, 2));
+                    if (dist < 0.45) {
+                        hatActive = true; hatTimer = 50;
+                        instruction.innerText = "Vive l'Empereur!";
+                        instruction.style.background = "var(--slate-800)";
+                        instruction.style.color = "white";
+                    }
+                }
+            }
         }
 
-        async function run() {
+        function drawPrettyHat(face) {
+            const left = face[139], right = face[368], top = face[10];
+            const headWidth = Math.sqrt(Math.pow(right.x - left.x, 2) + Math.pow(right.y - left.y, 2)) * canvas.width;
+            const hatScale = headWidth * 3.2, hatHeight = hatScale * 0.45;
+            const centerX = top.x * canvas.width, centerY = top.y * canvas.height - (hatHeight * 0.5);
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(Math.atan2(right.y - left.y, right.x - left.x));
+
+            // Basis vorm
+            ctx.beginPath();
+            ctx.moveTo(-hatScale/2, hatHeight/2);
+            ctx.bezierCurveTo(-hatScale*0.2, -hatHeight*1.2, hatScale*0.2, -hatHeight*1.2, hatScale/2, hatHeight/2);
+            ctx.quadraticCurveTo(0, hatHeight*0.1, -hatScale/2, hatHeight/2);
+            const grad = ctx.createRadialGradient(0, -hatHeight*0.2, 10, 0, 0, hatScale*0.6);
+            grad.addColorStop(0, '#475569'); grad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.lineWidth = 5; ctx.strokeStyle = '#10b981'; ctx.stroke();
+
+            // Kokarde
+            const cS = hatScale * 0.11;
+            ctx.translate(-hatScale * 0.22, -hatHeight * 0.15);
+            ctx.beginPath(); ctx.fillStyle = '#10b981'; ctx.arc(0, 0, cS, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.fillStyle = '#ffffff'; ctx.arc(0, 0, cS*0.6, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.fillStyle = '#0f172a'; ctx.arc(0, 0, cS*0.3, 0, 7); ctx.fill();
+            ctx.restore();
+        }
+
+        function render() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (currentFacingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (lastResults && lastResults.faceLandmarks && (hatActive || hatTimer > 0)) {
+                drawPrettyHat(lastResults.faceLandmarks);
+                if (!hatActive) hatTimer--;
+            }
+            ctx.restore();
+            if (!isProcessing && video.readyState >= 2) {
+                isProcessing = true;
+                holistic.send({image: video}).then(() => isProcessing = false);
+            }
+            requestAnimationFrame(render);
+        }
+
+        async function init() {
             await setupCamera();
-
-            holisticModel = new Holistic({locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
-            }});
-
-            holisticModel.setOptions({
-                modelComplexity: 1,
-                smoothLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
-
-            holisticModel.onResults(onResults);
-            videoElement.play();
-            requestAnimationFrame(renderLoop);
+            holistic = new Holistic({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${f}`});
+            holistic.setOptions({modelComplexity: 1, minDetectionConfidence: 0.5});
+            holistic.onResults(onResults);
+            video.play();
+            render();
         }
-
-        run();
+        init();
     </script>
 </body>
 </html>
