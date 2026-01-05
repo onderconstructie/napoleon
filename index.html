@@ -62,9 +62,9 @@
         canvas { width: 100%; height: 100%; display: block; }
 
         .instruction-box {
-            margin-top: 1.25rem; padding: 1rem; background: var(--green-50); border: 1.5px solid var(--accent);
-            border-radius: var(--radius-md); text-align: center; font-weight: 700; color: var(--slate-800);
-            transition: all 0.2s ease;
+            margin-top: 1.25rem; padding: 1.1rem; background: var(--green-50); border: 1.5px solid var(--accent);
+            border-radius: var(--radius-md); text-align: center; font-weight: 800; color: var(--slate-800);
+            transition: all 0.25s ease;
         }
 
         /* --- Full Width Selfie Button --- */
@@ -82,7 +82,6 @@
         .spinner { width: 36px; height: 36px; border: 3px solid var(--green-50); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* --- Quote Style (Strak) --- */
         .footer { text-align: center; padding: 2.5rem 1rem; margin-top: auto; }
         .footer-quote { color: var(--green-700); font-size: 1rem; font-weight: 700; letter-spacing: 0.01em; }
     </style>
@@ -176,8 +175,7 @@
                     if (dist < 0.48) {
                         hatActive = true; hatTimer = 50;
                         instruction.innerText = "Vive l'Empereur!";
-                        // Wijziging naar groene achtergrond
-                        instruction.style.background = "var(--accent)"; 
+                        instruction.style.background = "var(--accent)"; // Fel groen bij succes
                         instruction.style.color = "white";
                     } else if (hatTimer <= 0) {
                         instruction.innerText = "Plaats je rechterhand op je hart.";
@@ -193,20 +191,30 @@
             const headWidth = Math.sqrt(Math.pow(right.x - left.x, 2) + Math.pow(right.y - left.y, 2)) * canvas.width;
             const hatScale = headWidth * 3.3, hatHeight = hatScale * 0.48;
             const centerX = top.x * canvas.width, centerY = top.y * canvas.height - (hatHeight * 0.52);
-            ctx.save(); ctx.translate(centerX, centerY);
+            
+            ctx.save(); 
+            ctx.translate(centerX, centerY);
             ctx.rotate(Math.atan2(right.y - left.y, right.x - left.x));
+            
+            // Hoed Vorm met Gradients
             ctx.beginPath();
             ctx.moveTo(-hatScale/2, hatHeight/2);
             ctx.bezierCurveTo(-hatScale*0.2, -hatHeight*1.3, hatScale*0.2, -hatHeight*1.3, hatScale/2, hatHeight/2);
             ctx.quadraticCurveTo(0, hatHeight*0.15, -hatScale/2, hatHeight/2);
+            
             const grad = ctx.createRadialGradient(0, -hatHeight*0.2, 5, 0, 0, hatScale*0.7);
             grad.addColorStop(0, '#475569'); grad.addColorStop(1, '#0f172a');
             ctx.fillStyle = grad; ctx.fill();
+            
             ctx.lineWidth = 5; ctx.strokeStyle = '#10b981'; ctx.stroke();
-            const cS = hatScale * 0.12; ctx.translate(-hatScale * 0.20, -hatHeight * 0.2);
+
+            // Gedetailleerde Kokarde
+            const cS = hatScale * 0.12; 
+            ctx.translate(-hatScale * 0.20, -hatHeight * 0.22);
             ctx.beginPath(); ctx.fillStyle = '#10b981'; ctx.arc(0, 0, cS, 0, 7); ctx.fill();
             ctx.beginPath(); ctx.fillStyle = '#ffffff'; ctx.arc(0, 0, cS*0.65, 0, 7); ctx.fill();
-            ctx.beginPath(); ctx.fillStyle = '#0f172a'; ctx.arc(0, 0, cS*0.35, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.fillStyle = '#1e293b'; ctx.arc(0, 0, cS*0.35, 0, 7); ctx.fill();
+            
             ctx.restore();
         }
 
