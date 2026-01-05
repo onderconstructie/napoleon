@@ -54,7 +54,7 @@
             gap: 16px; 
         }
 
-        /* De Terug-link (Correcte URL & Stijl) */
+        /* De Terug-link */
         .back-link {
             position: absolute;
             left: 1.5rem;
@@ -117,7 +117,7 @@
             background: #000; line-height: 0; aspect-ratio: 4/3; width: 100%;
         }
         video { display: none; } 
-        canvas { width: 100%; height: 100%; transform: scaleX(-1); display: block; }
+        canvas { width: 100%; height: 100%; display: block; }
 
         /* --- Instructie & Feedback Box --- */
         .instruction-box {
@@ -129,12 +129,13 @@
         /* --- Controls --- */
         .controls { display: flex; gap: 1rem; margin-top: 1.5rem; width: 100%; }
         
-        .btn-reset {
+        .btn {
             flex: 1; padding: 0.875rem; background: var(--white); border: 1.5px solid var(--slate-200);
             border-radius: var(--radius-md); font-weight: 700; color: var(--slate-700); cursor: pointer;
             transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-size: 0.875rem;
         }
-        .btn-reset:hover { border-color: var(--accent); background: var(--green-50); color: var(--accent); }
+        .btn:hover { border-color: var(--accent); background: var(--green-50); color: var(--accent); }
 
         /* --- Details / Uitleg --- */
         details { border-top: 1px solid var(--slate-200); margin-top: 1.5rem; width: 100%; }
@@ -195,17 +196,27 @@
             </div>
 
             <div class="controls">
-                <button class="btn-reset" onclick="location.reload()">
+                <button class="btn" onclick="toggleCamera()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 1.965.71 3.766 1.89 5.168"/>
+                        <path d="M4 10h4v-4"/>
+                        <path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8c0-1.965-.71-3.766-1.89-5.168"/>
+                        <path d="M20 14h-4v4"/>
+                    </svg>
+                    Wissel
+                </button>
+                <button class="btn" onclick="resetState()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                    Herstarten
+                    Herstart
                 </button>
             </div>
 
             <details>
                 <summary>Hoe werkt dit? <span>▼</span></summary>
                 <div class="info-text">
-                    <p><strong>Technologie:</strong> Deze tool gebruikt MediaPipe Holistic. Dit AI-model analyseert je lichaamshouding en de positie van je handen lokaal in je browser.</p>
-                    <p style="margin-top: 8px;"><strong>Privacy:</strong> Alle data blijft op jouw apparaat en wordt niet verstuurd.</p>
+                    <p><strong>Technologie:</strong> Deze tool gebruikt MediaPipe Holistic om je houding te analyseren.</p>
+                    <p style="margin-top: 8px;"><strong>Camera:</strong> Gebruik de wisselknop om de camera aan de achterkant te gebruiken (ideaal voor mobiel).</p>
+                    <p style="margin-top: 8px;"><strong>Privacy:</strong> Alle data blijft lokaal.</p>
                 </div>
             </details>
         </div>
@@ -229,14 +240,20 @@
         let hatActive = false;
         let hatTimer = 0;
 
-        // --- RENDER LOOP ---
+        let currentFacingMode = 'user';
+        let stream = null;
+
         function renderLoop() {
             ctx.save();
             ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            // 1. Video
+
+            if (currentFacingMode === 'user') {
+                ctx.translate(canvasElement.width, 0);
+                ctx.scale(-1, 1);
+            }
+
             ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
 
-            // 2. Hoed
             if (lastResults && lastResults.faceLandmarks) {
                 if (hatActive || hatTimer > 0) {
                     drawPrettyHat(lastResults.faceLandmarks);
@@ -245,7 +262,6 @@
             }
             ctx.restore();
 
-            // 3. AI Trigger
             if (!isProcessing && videoElement.readyState >= 2) {
                 triggerAI();
             }
@@ -253,7 +269,6 @@
             requestAnimationFrame(renderLoop);
         }
 
-        // --- AI TRIGGER ---
         async function triggerAI() {
             isProcessing = true;
             try {
@@ -264,7 +279,6 @@
             }
         }
 
-        // --- AI RESULTATEN ---
         function onResults(results) {
             if (loader.style.display !== 'none') loader.style.display = 'none';
             lastResults = results;
@@ -294,44 +308,33 @@
             }
         }
 
-        // --- AANGESCHERPTE GESTURE CHECK (HART LOCATIE) ---
+        // --- AANGEPASTE LOGICA: VLOTTERE DETECTIE ---
         function checkGesturePrecise(pose, hand) {
-            const leftShoulder = pose[11];  // Linker schouder (vanuit AI gezien)
-            const rightShoulder = pose[12]; // Rechter schouder
-            const wrist = hand[0];          // Pols
+            const leftShoulder = pose[11];  
+            const rightShoulder = pose[12]; 
+            const wrist = hand[0];          
 
-            // 1. Bereken schouderbreedte voor relatieve afstanden
-            // We gebruiken de Euclidische afstand in 2D
             const shoulderWidth = Math.sqrt(
                 Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
                 Math.pow(rightShoulder.y - leftShoulder.y, 2)
             );
 
-            // 2. Definieer het "Hart Punt"
-            // Het hart zit niet OP de schouder, maar iets naar binnen (mediaal) en iets naar beneden.
-            // Omdat de landmarks genormaliseerd zijn (0-1), kunnen we rekenen met vectoren.
-            
-            // X-positie: Start bij linkerschouder (11) en ga 20% richting rechterschouder (12)
-            // Let op: landmark 11 is 'links' op het lichaam, maar rechts in de mirror-view. 
-            // We rekenen puur met de coördinaten.
-            const heartX = leftShoulder.x + (rightShoulder.x - leftShoulder.x) * 0.20;
-            
-            // Y-positie: Start bij schouderhoogte en ga 30% van de schouderbreedte naar beneden
-            const heartY = leftShoulder.y + (shoulderWidth * 0.30);
+            // Doelzone: Iets meer naar het midden (0.25 ipv 0.20) en iets lager (0.35 ipv 0.30)
+            const heartX = leftShoulder.x + (rightShoulder.x - leftShoulder.x) * 0.25;
+            const heartY = leftShoulder.y + (shoulderWidth * 0.35);
 
-            // 3. Bereken afstand van pols tot dit berekende hart-punt
             const distToHeart = Math.sqrt(
                 Math.pow(heartX - wrist.x, 2) + 
                 Math.pow(heartY - wrist.y, 2)
             );
 
-            // 4. Threshold: Hand moet binnen ~30% van de schouderbreedte van het hartpunt zijn
-            if (distToHeart < (shoulderWidth * 0.30)) { 
+            // Tolerantie verhoogd naar 50% van de schouderbreedte (was 30%)
+            // Dit maakt het veel makkelijker om te triggeren op mobiel
+            if (distToHeart < (shoulderWidth * 0.50)) { 
                 hatActive = true;
             }
         }
 
-        // --- HOED TEKENEN ---
         function drawPrettyHat(faceLandmarks) {
             const leftTemple = faceLandmarks[139];
             const rightTemple = faceLandmarks[368];
@@ -357,7 +360,6 @@
             ctx.translate(centerX, centerY);
             ctx.rotate(angle);
 
-            // Hoofdvorm
             ctx.beginPath();
             ctx.moveTo(-hatScale/2, hatHeight/2);
             ctx.bezierCurveTo(-hatScale*0.2, -hatHeight*1.2, hatScale*0.2, -hatHeight*1.2, hatScale/2, hatHeight/2);
@@ -370,12 +372,10 @@
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            // Rand
             ctx.lineWidth = 6;
             ctx.strokeStyle = '#10b981';
             ctx.stroke();
 
-            // Kokarde
             const cockadeSize = hatScale * 0.11;
             ctx.translate(-hatScale * 0.22, -hatHeight * 0.15); 
             ctx.beginPath(); ctx.fillStyle = '#10b981'; ctx.arc(0, 0, cockadeSize, 0, Math.PI * 2); ctx.fill();
@@ -385,16 +385,48 @@
             ctx.restore();
         }
 
-        // --- START ---
+        async function setupCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: 640, 
+                        height: 480, 
+                        facingMode: currentFacingMode 
+                    }
+                });
+                videoElement.srcObject = stream;
+                
+                await new Promise(r => videoElement.onloadedmetadata = r);
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+            } catch (err) {
+                alert("Kon camera niet starten.");
+                console.error(err);
+            }
+        }
+
+        async function toggleCamera() {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            loader.style.display = 'flex';
+            await setupCamera();
+            loader.style.display = 'none';
+        }
+
+        function resetState() {
+            hatActive = false;
+            hatTimer = 0;
+            instructionText.style.background = "#f0fdf4";
+            instructionText.style.color = "#1e293b";
+            instructionText.style.borderColor = "#10b981";
+            instructionText.innerText = "Plaats je rechterhand op je hart.";
+        }
+
         async function run() {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'user' }
-            });
-            videoElement.srcObject = stream;
-            
-            await new Promise(r => videoElement.onloadedmetadata = r);
-            canvasElement.width = videoElement.videoWidth;
-            canvasElement.height = videoElement.videoHeight;
+            await setupCamera();
 
             holisticModel = new Holistic({locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
