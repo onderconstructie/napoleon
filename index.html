@@ -16,7 +16,7 @@
             --slate-400: #94a3b8;
             --slate-500: #64748b;
             --slate-700: #334155;
-            --slate-800: #1e293b; /* Donker Slate voor de hoed en actieve staat */
+            --slate-800: #1e293b; 
             --white: #ffffff;
             --accent: #10b981; /* Emerald */
             --green-50: #f0fdf4;
@@ -37,16 +37,53 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* --- Header & Vernieuwd Logo --- */
-        .header { background: var(--white); border-bottom: 1px solid var(--slate-200); padding: 1.5rem; }
-        .header-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 16px; }
+        /* --- Header & Navigatie --- */
+        .header { 
+            background: var(--white); 
+            border-bottom: 1px solid var(--slate-200); 
+            padding: 1.5rem; 
+            position: relative; 
+        }
+        
+        .header-content { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 16px; 
+        }
+
+        /* De Terug-link (Correcte URL & Stijl) */
+        .back-link {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px; 
+            text-decoration: none;
+            color: var(--slate-500); 
+            font-weight: 500; 
+            font-size: 1rem;
+            transition: color 0.2s ease;
+            z-index: 10;
+        }
+        .back-link:hover { color: var(--accent); }
+        .back-link svg { width: 20px; height: 20px; stroke-width: 2; }
+
+        @media (max-width: 600px) {
+            .back-link span { display: none; } 
+            .header { padding: 1rem; }
+            .back-link { left: 1rem; }
+        }
         
         .logo-circle {
             width: 56px; height: 56px; background: var(--green-50); border: 2px solid var(--accent);
             border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         
-        /* Nieuw, gedetailleerder logo */
         .logo-circle svg { width: 38px; height: 38px; }
 
         h1 { font-size: 1.5rem; font-weight: 800; color: var(--slate-800); margin: 0; line-height: 1; }
@@ -82,7 +119,7 @@
         video { display: none; } 
         canvas { width: 100%; height: 100%; transform: scaleX(-1); display: block; }
 
-        /* --- Instructie & Feedback Box (Met soepele transitie) --- */
+        /* --- Instructie & Feedback Box --- */
         .instruction-box {
             margin-top: 1.5rem; padding: 1.25rem; background: var(--green-50); border: 1.5px solid var(--accent);
             border-radius: var(--radius-md); text-align: center; font-weight: 700; color: var(--slate-800);
@@ -115,6 +152,14 @@
 <body>
 
     <header class="header">
+        <a href="https://onderconstructie.github.io/fun" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Fun</span>
+        </a>
+
         <div class="header-content">
             <div class="logo-circle">
                 <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -181,27 +226,26 @@
         let isProcessing = false;
         let lastResults = null;
         
-        // Status Variabelen voor soepele UE
         let hatActive = false;
-        let hatTimer = 0; // Zorgt dat de hoed even blijft staan (anti-knipper)
+        let hatTimer = 0;
 
-        // --- DE RENDER LOOP (60 FPS) ---
+        // --- RENDER LOOP ---
         function renderLoop() {
             ctx.save();
             ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            // 1. Teken Video
+            // 1. Video
             ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
 
-            // 2. Teken Hoed (als actief of timer loopt)
+            // 2. Hoed
             if (lastResults && lastResults.faceLandmarks) {
                 if (hatActive || hatTimer > 0) {
                     drawPrettyHat(lastResults.faceLandmarks);
-                    if (!hatActive) hatTimer--; // Aftellen als de pose weg is
+                    if (!hatActive) hatTimer--;
                 }
             }
             ctx.restore();
 
-            // 3. Nieuwe AI frame aanvragen als de vorige klaar is
+            // 3. AI Trigger
             if (!isProcessing && videoElement.readyState >= 2) {
                 triggerAI();
             }
@@ -216,37 +260,33 @@
                 await holisticModel.send({image: videoElement});
             } catch (e) {
                 console.error(e);
-                isProcessing = false; // Reset bij fout
+                isProcessing = false;
             }
         }
 
-        // --- AI RESULTATEN VERWERKEN ---
+        // --- AI RESULTATEN ---
         function onResults(results) {
             if (loader.style.display !== 'none') loader.style.display = 'none';
             lastResults = results;
             isProcessing = false;
 
-            hatActive = false; // Reset voor deze frame
+            hatActive = false; 
 
-            // Checken of rechterhand of linkerhand (fallback) gedetecteerd is
             if (results.poseLandmarks) {
                 if (results.rightHandLandmarks) {
-                    checkGestureSimple(results.poseLandmarks, results.rightHandLandmarks);
+                    checkGesturePrecise(results.poseLandmarks, results.rightHandLandmarks);
                 } else if (results.leftHandLandmarks) {
-                     // Soms spiegelt de AI de handen, dit vangt dat op.
-                    checkGestureSimple(results.poseLandmarks, results.leftHandLandmarks);
+                    checkGesturePrecise(results.poseLandmarks, results.leftHandLandmarks);
                 }
             }
 
-            // UI Update met soepele overgang
             if (hatActive) {
-                hatTimer = 45; // Buffer van ~0.75 seconde
-                instructionText.style.background = "#1e293b"; // Dark slate
+                hatTimer = 45; 
+                instructionText.style.background = "#1e293b";
                 instructionText.style.color = "#ffffff";
                 instructionText.style.borderColor = "#1e293b";
                 instructionText.innerText = "Vive l'Empereur!";
             } else if (hatTimer <= 0) {
-                // Pas terugzetten als de timer op 0 staat
                 instructionText.style.background = "#f0fdf4";
                 instructionText.style.color = "#1e293b";
                 instructionText.style.borderColor = "#10b981";
@@ -254,29 +294,49 @@
             }
         }
 
-        // --- SIMPELE POSE CHECK (Afstandsbepaling) ---
-        function checkGestureSimple(pose, hand) {
-            // We vergelijken de pols met de schouder aan de 'hart-kant' (visueel links op het scherm)
-            const shoulder = pose[11]; 
-            const wrist = hand[0];    
+        // --- AANGESCHERPTE GESTURE CHECK (HART LOCATIE) ---
+        function checkGesturePrecise(pose, hand) {
+            const leftShoulder = pose[11];  // Linker schouder (vanuit AI gezien)
+            const rightShoulder = pose[12]; // Rechter schouder
+            const wrist = hand[0];          // Pols
 
-            // Bereken afstand
-            const dist = Math.sqrt(Math.pow(shoulder.x - wrist.x, 2) + Math.pow(shoulder.y - wrist.y, 2));
+            // 1. Bereken schouderbreedte voor relatieve afstanden
+            // We gebruiken de Euclidische afstand in 2D
+            const shoulderWidth = Math.sqrt(
+                Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
+                Math.pow(rightShoulder.y - leftShoulder.y, 2)
+            );
 
-            // Drempelwaarde: als de hand dichtbij genoeg is
-            // 0.22 is een goede balans tussen te streng en te makkelijk
-            if (dist < 0.22) { 
+            // 2. Definieer het "Hart Punt"
+            // Het hart zit niet OP de schouder, maar iets naar binnen (mediaal) en iets naar beneden.
+            // Omdat de landmarks genormaliseerd zijn (0-1), kunnen we rekenen met vectoren.
+            
+            // X-positie: Start bij linkerschouder (11) en ga 20% richting rechterschouder (12)
+            // Let op: landmark 11 is 'links' op het lichaam, maar rechts in de mirror-view. 
+            // We rekenen puur met de coördinaten.
+            const heartX = leftShoulder.x + (rightShoulder.x - leftShoulder.x) * 0.20;
+            
+            // Y-positie: Start bij schouderhoogte en ga 30% van de schouderbreedte naar beneden
+            const heartY = leftShoulder.y + (shoulderWidth * 0.30);
+
+            // 3. Bereken afstand van pols tot dit berekende hart-punt
+            const distToHeart = Math.sqrt(
+                Math.pow(heartX - wrist.x, 2) + 
+                Math.pow(heartY - wrist.y, 2)
+            );
+
+            // 4. Threshold: Hand moet binnen ~30% van de schouderbreedte van het hartpunt zijn
+            if (distToHeart < (shoulderWidth * 0.30)) { 
                 hatActive = true;
             }
         }
 
-        // --- DE VERNIEUWDE HOED (Met diepte) ---
+        // --- HOED TEKENEN ---
         function drawPrettyHat(faceLandmarks) {
             const leftTemple = faceLandmarks[139];
             const rightTemple = faceLandmarks[368];
             const topHead = faceLandmarks[10];
 
-            // Wiskunde voor positie, schaal en rotatie
             const headWidth = Math.sqrt(
                 Math.pow(rightTemple.x - leftTemple.x, 2) +
                 Math.pow(rightTemple.y - leftTemple.y, 2)
@@ -297,41 +357,35 @@
             ctx.translate(centerX, centerY);
             ctx.rotate(angle);
 
-            // --- 1. De Hoofdvorm met Gradient (Diepte!) ---
+            // Hoofdvorm
             ctx.beginPath();
             ctx.moveTo(-hatScale/2, hatHeight/2);
             ctx.bezierCurveTo(-hatScale*0.2, -hatHeight*1.2, hatScale*0.2, -hatHeight*1.2, hatScale/2, hatHeight/2);
             ctx.quadraticCurveTo(0, hatHeight*0.1, -hatScale/2, hatHeight/2);
             ctx.closePath();
 
-            // Radiaal verloop voor een 3D effect
-            // Van lichter slate-blauw in het midden naar donker slate aan de randen
             const gradient = ctx.createRadialGradient(0, -hatHeight*0.2, hatScale*0.1, 0, 0, hatScale*0.6);
-            gradient.addColorStop(0, '#475569'); // Slate-600 (Licht)
-            gradient.addColorStop(1, '#0f172a'); // Slate-900 (Donker)
+            gradient.addColorStop(0, '#475569'); 
+            gradient.addColorStop(1, '#0f172a'); 
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            // --- 2. De Gouden (Emerald) Rand ---
+            // Rand
             ctx.lineWidth = 6;
-            ctx.strokeStyle = '#10b981'; // Emerald Accent
+            ctx.strokeStyle = '#10b981';
             ctx.stroke();
 
-            // --- 3. De Kokarde (Driekleur Detail) ---
+            // Kokarde
             const cockadeSize = hatScale * 0.11;
             ctx.translate(-hatScale * 0.22, -hatHeight * 0.15); 
-            
-            // Buitenste ring (Accent)
             ctx.beginPath(); ctx.fillStyle = '#10b981'; ctx.arc(0, 0, cockadeSize, 0, Math.PI * 2); ctx.fill();
-            // Middelste ring (Wit)
             ctx.beginPath(); ctx.fillStyle = '#ffffff'; ctx.arc(0, 0, cockadeSize * 0.65, 0, Math.PI * 2); ctx.fill();
-            // Binnenste kern (Donker)
             ctx.beginPath(); ctx.fillStyle = '#0f172a'; ctx.arc(0, 0, cockadeSize * 0.35, 0, Math.PI * 2); ctx.fill();
 
             ctx.restore();
         }
 
-        // --- INITIALISATIE ---
+        // --- START ---
         async function run() {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { width: 640, height: 480, facingMode: 'user' }
