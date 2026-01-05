@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Napoleon Lookalike</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    
+    <style>
+        /* --- Huisstijl Definities --- */
+        :root {
+            --slate-50: #f8fafc;
+            --slate-200: #e2e8f0;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-700: #334155;
+            --slate-800: #1e293b; /* Donker Slate voor de hoed en actieve staat */
+            --white: #ffffff;
+            --accent: #10b981; /* Emerald */
+            --green-50: #f0fdf4;
+            --green-700: #15803d;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--slate-50);
+            color: var(--slate-700);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Header & Vernieuwd Logo --- */
+        .header { background: var(--white); border-bottom: 1px solid var(--slate-200); padding: 1.5rem; }
+        .header-content { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 16px; }
+        
+        .logo-circle {
+            width: 56px; height: 56px; background: var(--green-50); border: 2px solid var(--accent);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        
+        /* Nieuw, gedetailleerder logo */
+        .logo-circle svg { width: 38px; height: 38px; }
+
+        h1 { font-size: 1.5rem; font-weight: 800; color: var(--slate-800); margin: 0; line-height: 1; }
+        .subtitle { font-size: 0.875rem; color: var(--slate-500); margin-top: 4px; font-weight: 500; }
+
+        /* --- Layout Container --- */
+        .container {
+            max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; flex: 1; width: 100%;
+            box-sizing: border-box; display: flex; flex-direction: column; align-items: center;
+        }
+
+        .card {
+            background: var(--white); border-radius: var(--radius-lg); border: 1.5px solid var(--slate-200);
+            padding: 1.5rem; display: flex; flex-direction: column; position: relative; width: 100%; box-shadow: var(--shadow-sm);
+        }
+
+        /* --- Loader --- */
+        #loader {
+            position: absolute; inset: 0; background: var(--white); z-index: 20;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--radius-lg);
+        }
+        .spinner {
+            width: 44px; height: 44px; border: 3.5px solid var(--green-50); border-top: 3.5px solid var(--accent);
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Canvas & Video --- */
+        .canvas-container {
+            position: relative; border-radius: var(--radius-md); overflow: hidden;
+            background: #000; line-height: 0; aspect-ratio: 4/3; width: 100%;
+        }
+        video { display: none; } 
+        canvas { width: 100%; height: 100%; transform: scaleX(-1); display: block; }
+
+        /* --- Instructie & Feedback Box (Met soepele transitie) --- */
+        .instruction-box {
+            margin-top: 1.5rem; padding: 1.25rem; background: var(--green-50); border: 1.5px solid var(--accent);
+            border-radius: var(--radius-md); text-align: center; font-weight: 700; color: var(--slate-800);
+            font-size: 1rem; transition: all 0.4s ease-in-out;
+        }
+
+        /* --- Controls --- */
+        .controls { display: flex; gap: 1rem; margin-top: 1.5rem; width: 100%; }
+        
+        .btn-reset {
+            flex: 1; padding: 0.875rem; background: var(--white); border: 1.5px solid var(--slate-200);
+            border-radius: var(--radius-md); font-weight: 700; color: var(--slate-700); cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-reset:hover { border-color: var(--accent); background: var(--green-50); color: var(--accent); }
+
+        /* --- Details / Uitleg --- */
+        details { border-top: 1px solid var(--slate-200); margin-top: 1.5rem; width: 100%; }
+        summary { padding: 1rem 0; font-size: 0.8125rem; font-weight: 700; color: var(--slate-500); cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+        .info-text { font-size: 0.75rem; color: var(--slate-500); line-height: 1.6; margin: 0; padding-bottom: 0.5rem; }
+
+        /* --- Footer Quote --- */
+        .footer { text-align: center; padding: 3rem 1rem; margin-top: auto; }
+        .footer-quote { 
+            color: var(--green-700); font-size: 1rem; font-weight: 600;
+            letter-spacing: 0.02em; display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-circle">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 21C2 21 10 6 16 6C22 6 30 21 30 21L16 17L2 21Z" fill="#1e293b" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+                    <circle cx="16" cy="14" r="3" fill="#10b981"/>
+                    <circle cx="16" cy="14" r="2" fill="#ffffff"/>
+                    <circle cx="16" cy="14" r="1" fill="#1e293b"/>
+                </svg>
+            </div>
+            <div class="title-group">
+                <h1>Napoleon Lookalike</h1>
+                <p class="subtitle">Ontdek je innerlijke keizer</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div id="loader">
+                <div class="spinner"></div>
+                <p id="loaderStatus" style="font-size: 0.875rem; font-weight: 600; color: var(--slate-500); text-align: center;">
+                    AI Initialiseren...<br>Een moment geduld.
+                </p>
+            </div>
+            
+            <div class="canvas-container">
+                <video id="webcam" playsinline width="640" height="480"></video>
+                <canvas id="output_canvas"></canvas>
+            </div>
+
+            <div class="instruction-box" id="instructionText">
+                Plaats je rechterhand op je hart.
+            </div>
+
+            <div class="controls">
+                <button class="btn-reset" onclick="location.reload()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    Herstarten
+                </button>
+            </div>
+
+            <details>
+                <summary>Hoe werkt dit? <span>▼</span></summary>
+                <div class="info-text">
+                    <p><strong>Technologie:</strong> Deze tool gebruikt MediaPipe Holistic. Dit AI-model analyseert je lichaamshouding en de positie van je handen lokaal in je browser.</p>
+                    <p style="margin-top: 8px;"><strong>Privacy:</strong> Alle data blijft op jouw apparaat en wordt niet verstuurd.</p>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <span class="footer-quote">Wie zijn eigen grenzen kent, regeert.</span>
+    </footer>
+
+    <script>
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('output_canvas');
+        const ctx = canvasElement.getContext('2d');
+        const loader = document.getElementById('loader');
+        const instructionText = document.getElementById('instructionText');
+
+        let holisticModel;
+        let isProcessing = false;
+        let lastResults = null;
+        
+        // Status Variabelen voor soepele UE
+        let hatActive = false;
+        let hatTimer = 0; // Zorgt dat de hoed even blijft staan (anti-knipper)
+
+        // --- DE RENDER LOOP (60 FPS) ---
+        function renderLoop() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            // 1. Teken Video
+            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+            // 2. Teken Hoed (als actief of timer loopt)
+            if (lastResults && lastResults.faceLandmarks) {
+                if (hatActive || hatTimer > 0) {
+                    drawPrettyHat(lastResults.faceLandmarks);
+                    if (!hatActive) hatTimer--; // Aftellen als de pose weg is
+                }
+            }
+            ctx.restore();
+
+            // 3. Nieuwe AI frame aanvragen als de vorige klaar is
+            if (!isProcessing && videoElement.readyState >= 2) {
+                triggerAI();
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        // --- AI TRIGGER ---
+        async function triggerAI() {
+            isProcessing = true;
+            try {
+                await holisticModel.send({image: videoElement});
+            } catch (e) {
+                console.error(e);
+                isProcessing = false; // Reset bij fout
+            }
+        }
+
+        // --- AI RESULTATEN VERWERKEN ---
+        function onResults(results) {
+            if (loader.style.display !== 'none') loader.style.display = 'none';
+            lastResults = results;
+            isProcessing = false;
+
+            hatActive = false; // Reset voor deze frame
+
+            // Checken of rechterhand of linkerhand (fallback) gedetecteerd is
+            if (results.poseLandmarks) {
+                if (results.rightHandLandmarks) {
+                    checkGestureSimple(results.poseLandmarks, results.rightHandLandmarks);
+                } else if (results.leftHandLandmarks) {
+                     // Soms spiegelt de AI de handen, dit vangt dat op.
+                    checkGestureSimple(results.poseLandmarks, results.leftHandLandmarks);
+                }
+            }
+
+            // UI Update met soepele overgang
+            if (hatActive) {
+                hatTimer = 45; // Buffer van ~0.75 seconde
+                instructionText.style.background = "#1e293b"; // Dark slate
+                instructionText.style.color = "#ffffff";
+                instructionText.style.borderColor = "#1e293b";
+                instructionText.innerText = "Vive l'Empereur!";
+            } else if (hatTimer <= 0) {
+                // Pas terugzetten als de timer op 0 staat
+                instructionText.style.background = "#f0fdf4";
+                instructionText.style.color = "#1e293b";
+                instructionText.style.borderColor = "#10b981";
+                instructionText.innerText = "Plaats je rechterhand op je hart.";
+            }
+        }
+
+        // --- SIMPELE POSE CHECK (Afstandsbepaling) ---
+        function checkGestureSimple(pose, hand) {
+            // We vergelijken de pols met de schouder aan de 'hart-kant' (visueel links op het scherm)
+            const shoulder = pose[11]; 
+            const wrist = hand[0];    
+
+            // Bereken afstand
+            const dist = Math.sqrt(Math.pow(shoulder.x - wrist.x, 2) + Math.pow(shoulder.y - wrist.y, 2));
+
+            // Drempelwaarde: als de hand dichtbij genoeg is
+            // 0.22 is een goede balans tussen te streng en te makkelijk
+            if (dist < 0.22) { 
+                hatActive = true;
+            }
+        }
+
+        // --- DE VERNIEUWDE HOED (Met diepte) ---
+        function drawPrettyHat(faceLandmarks) {
+            const leftTemple = faceLandmarks[139];
+            const rightTemple = faceLandmarks[368];
+            const topHead = faceLandmarks[10];
+
+            // Wiskunde voor positie, schaal en rotatie
+            const headWidth = Math.sqrt(
+                Math.pow(rightTemple.x - leftTemple.x, 2) +
+                Math.pow(rightTemple.y - leftTemple.y, 2)
+            ) * canvasElement.width;
+            
+            const hatScale = headWidth * 3.2; 
+            const hatHeight = hatScale * 0.45;
+
+            const centerX = topHead.x * canvasElement.width;
+            const centerY = (topHead.y * canvasElement.height) - (hatHeight * 0.50);
+            
+            const angle = Math.atan2(
+                rightTemple.y - leftTemple.y,
+                rightTemple.x - leftTemple.x
+            );
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(angle);
+
+            // --- 1. De Hoofdvorm met Gradient (Diepte!) ---
+            ctx.beginPath();
+            ctx.moveTo(-hatScale/2, hatHeight/2);
+            ctx.bezierCurveTo(-hatScale*0.2, -hatHeight*1.2, hatScale*0.2, -hatHeight*1.2, hatScale/2, hatHeight/2);
+            ctx.quadraticCurveTo(0, hatHeight*0.1, -hatScale/2, hatHeight/2);
+            ctx.closePath();
+
+            // Radiaal verloop voor een 3D effect
+            // Van lichter slate-blauw in het midden naar donker slate aan de randen
+            const gradient = ctx.createRadialGradient(0, -hatHeight*0.2, hatScale*0.1, 0, 0, hatScale*0.6);
+            gradient.addColorStop(0, '#475569'); // Slate-600 (Licht)
+            gradient.addColorStop(1, '#0f172a'); // Slate-900 (Donker)
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // --- 2. De Gouden (Emerald) Rand ---
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#10b981'; // Emerald Accent
+            ctx.stroke();
+
+            // --- 3. De Kokarde (Driekleur Detail) ---
+            const cockadeSize = hatScale * 0.11;
+            ctx.translate(-hatScale * 0.22, -hatHeight * 0.15); 
+            
+            // Buitenste ring (Accent)
+            ctx.beginPath(); ctx.fillStyle = '#10b981'; ctx.arc(0, 0, cockadeSize, 0, Math.PI * 2); ctx.fill();
+            // Middelste ring (Wit)
+            ctx.beginPath(); ctx.fillStyle = '#ffffff'; ctx.arc(0, 0, cockadeSize * 0.65, 0, Math.PI * 2); ctx.fill();
+            // Binnenste kern (Donker)
+            ctx.beginPath(); ctx.fillStyle = '#0f172a'; ctx.arc(0, 0, cockadeSize * 0.35, 0, Math.PI * 2); ctx.fill();
+
+            ctx.restore();
+        }
+
+        // --- INITIALISATIE ---
+        async function run() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' }
+            });
+            videoElement.srcObject = stream;
+            
+            await new Promise(r => videoElement.onloadedmetadata = r);
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+
+            holisticModel = new Holistic({locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+            }});
+
+            holisticModel.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            holisticModel.onResults(onResults);
+            videoElement.play();
+            requestAnimationFrame(renderLoop);
+        }
+
+        run();
+    </script>
+</body>
+</html>
